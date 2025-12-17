@@ -1,16 +1,12 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-
 app.use(cors());
-
-app.get("/gmp", async (req, res) => {
+app.get("/", async (req, res) => {
     const url = "https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo";
     const response = await fetch(url);
     const { reportTableData } = await response.json();
-
     let rows = "";
-
     reportTableData.forEach(el => {
         const name = el.Name.split(">")[1].split("<")[0];
         const gmpValue = el.GMP.split(">")[1].split("<")[0];
@@ -19,7 +15,6 @@ app.get("/gmp", async (req, res) => {
             .split("<")[0]
             .split("(")[1]
             .split(")")[0];
-
         rows += `
             <tr>
                 <td>${name}</td>
@@ -28,7 +23,6 @@ app.get("/gmp", async (req, res) => {
             </tr>
         `;
     });
-
     const html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -89,8 +83,6 @@ app.get("/gmp", async (req, res) => {
         </body>
         </html>
     `;
-
     res.status(200).send(html);
 });
-
 app.listen(3000, () => console.log("Listening at 3000"));
