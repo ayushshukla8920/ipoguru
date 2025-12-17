@@ -1,29 +1,38 @@
-const express = require('express');
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const cors = require('cors');
 app.use(cors());
 app.get("/", async (req, res) => {
-    const url = "https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo";
-    const response = await fetch(url);
-    const { reportTableData } = await response.json();
-    let rows = "";
-    reportTableData.forEach(el => {
-        const name = el.Name.split(">")[1].split("<")[0];
-        const gmpValue = el.GMP.split(">")[1].split("<")[0];
-        const amt = gmpValue !== "--" ? Number(gmpValue) : 0;
-        const percentage = el.GMP.split(">")[2]
-            .split("<")[0]
-            .split("(")[1]
-            .split(")")[0];
-        rows += `
-            <tr>
-                <td>${name}</td>
-                <td>${amt}</td>
-                <td>${percentage}</td>
-            </tr>
-        `;
-    });
-    const html = `
+    try {
+        const url = "https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo";
+        const response = await fetch(url);
+        const { reportTableData } = await response.json();
+        const rowPromises = reportTableData.map(async (el) => {
+            const name = el.Name.split(">")[1].split("<")[0];
+            const ipoPath = el.Name.split('"')[1].substring(4);
+            const rrp = await fetch("https://investorgain.com/ipo" + ipoPath);
+            const html = await rrp.text();
+            let reg = "Unknown";
+            if (html.includes("Kfin Technologies Ltd.")) reg = "K-Fintech";
+            else if (html.includes("Bigshare Services Pvt.Ltd.")) reg = "Bigshare";
+            else if (html.includes("Link Intime India Private Ltd")) reg = "Link Intime";
+            const gmpValue = el.GMP.split(">")[1].split("<")[0];
+            const amt = gmpValue !== "--" ? Number(gmpValue) : 0;
+            const percentage = el.GMP.split(">")[2]
+                .split("<")[0]
+                .split("(")[1]
+                .split(")")[0];
+            return `
+                <tr>
+                    <td>${name}</td>
+                    <td>${amt}</td>
+                    <td>${percentage}</td>
+                    <td>${reg}</td>
+                </tr>
+            `;
+        });
+        const rows = (await Promise.all(rowPromises)).join("");
+        const htmlPage = `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -73,6 +82,7 @@ app.get("/", async (req, res) => {
                             <th>IPO Name</th>
                             <th>GMP Amount</th>
                             <th>GMP %</th>
+                            <th>Registrar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,7 +92,11 @@ app.get("/", async (req, res) => {
             </div>
         </body>
         </html>
-    `;
-    res.status(200).send(html);
+        `;
+        res.status(200).send(htmlPage);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+    }
 });
 app.listen(3000, () => console.log("Listening at 3000"));
