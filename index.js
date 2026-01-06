@@ -160,13 +160,16 @@ app.get("/", async (req, res) => {
                     .reg-logo-wrapper { width: 80px; height: 30px; }
                     .container { margin: 20px auto; }
                 }
+                a{
+                    color: var(--accent);
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <header>
                     <h1>IPO Guru</h1>
-                    <p>Live GMP data & Registrar details for upcoming listings</p>
+                    <p>Live GMP data & Registrar details for upcoming listings <a href="/old">switch to old view</a></p>
                 </header>
                 <div class="table-container">
                     <table>
