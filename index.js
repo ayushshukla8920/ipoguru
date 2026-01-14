@@ -5,14 +5,19 @@ const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const path = require("path");
+const { error } = require("console");
 require("dotenv").config();
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET;
 mongoose.connect(process.env.MONGODB_URI).then(() => console.log("MongoDB Connected"));
+const panCardSchema = new mongoose.Schema({
+    pan: { type: String, required: true },
+    name: { type: String, default: "Unknown" }
+}, { _id: false });
 const userSchema = new mongoose.Schema({
     phone: { type: String, unique: true, required: true },
     pin: { type: String, required: true },
-    panCards: [String]
+    panCards: [panCardSchema]
 });
 const User = mongoose.model("User", userSchema);
 app.use(express.json());
@@ -180,21 +185,140 @@ app.get("/api/user/pan", protectApi, async (req, res) => {
 app.post("/api/user/pan", protectApi, async (req, res) => {
     try {
         const { pan } = req.body;
-        if (!pan || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.toUpperCase())) {
+        const upperPan = pan?.toUpperCase();
+        if (!upperPan || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(upperPan)) {
             return res.status(400).json({ success: false, error: "Invalid PAN format" });
         }
-        await User.findByIdAndUpdate(req.user.id, { $addToSet: { panCards: pan.toUpperCase() } });
+        const user = await User.findById(req.user.id);
+        const exists = user.panCards.some(p => p.pan === upperPan);
+        if (exists) {
+            return res.status(400).json({ success: false, error: "PAN already exists" });
+        }
+        await User.findByIdAndUpdate(req.user.id, {
+            $push: { panCards: { pan: upperPan, name: "Unknown" } }
+        });
         res.json({ success: true, message: "PAN added successfully" });
     } catch (err) {
         res.status(500).json({ success: false, error: "Failed to add PAN" });
     }
 });
+app.patch("/api/user/pan/:pan", protectApi, async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ success: false, error: "Name is required" });
+        }
+        const result = await User.findOneAndUpdate(
+            { _id: req.user.id, "panCards.pan": req.params.pan.toUpperCase() },
+            { $set: { "panCards.$.name": name.trim() } },
+            { new: true }
+        );
+        if (!result) {
+            return res.status(404).json({ success: false, error: "PAN not found" });
+        }
+        res.json({ success: true, message: "Name updated successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Failed to update name" });
+    }
+});
 app.delete("/api/user/pan/:pan", protectApi, async (req, res) => {
     try {
-        await User.findByIdAndUpdate(req.user.id, { $pull: { panCards: req.params.pan } });
+        await User.findByIdAndUpdate(req.user.id, {
+            $pull: { panCards: { pan: req.params.pan.toUpperCase() } }
+        });
         res.json({ success: true, message: "PAN removed successfully" });
     } catch (err) {
         res.status(500).json({ success: false, error: "Failed to remove PAN" });
+    }
+});
+app.post("/api/checkallotedyet", async (req, res) => {
+    try {
+        const { ipoName, registrar } = req.body;
+        let isAllotmentAvailable = false;
+        let clientId = null;
+        if (!ipoName || !registrar) {
+            return res.status(400).json({ success: false, error: "IPO name and registrar are required" });
+        }
+        if (registrar == "K-Fintech") {
+            const url = "https://ipostatus.kfintech.com/static/js/main.0ec4c140.js";
+            const js = await (await fetch(url)).text();
+            const match = js.match(/const\s+rf\s*=\s*JSON\.parse\('([^']*)'\)/);
+            const jsonString = match[1];
+            const rf = JSON.parse(jsonString);
+            const alloted = rf.find((item) => item.name.toLowerCase().includes(ipoName.toLowerCase().substring(0, ipoName.length - 5)));
+            isAllotmentAvailable = alloted ? true : false;
+            clientId = alloted?.clientId;
+        }
+        res.json({
+            success: isAllotmentAvailable,
+            data: {
+                allotmentAvailable: isAllotmentAvailable,
+                clientId: clientId,
+                message: isAllotmentAvailable ? "Allotment results are available" : "Allotment results not yet announced"
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: "Failed to check allotment status" });
+    }
+});
+app.post("/api/checkallotment", protectApi, async (req, res) => {
+    try {
+        const { ipoName, registrar, pan, clientId } = req.body;
+        if (!ipoName || !registrar || !pan) {
+            return res.status(400).json({ success: false, error: "IPO name, registrar, and PAN are required" });
+        }
+        if (registrar == "K-Fintech") {
+            const url = "https://0uz601ms56.execute-api.ap-south-1.amazonaws.com/prod/api/query?type=pan";
+            const data = await (await fetch(url, {
+                method: "GET",
+                headers: {
+                    "reqparam": pan.toUpperCase(),
+                    "client_id": clientId
+                }
+            })).json();
+            if (data.error == "Record Not Found") {
+                return res.json({
+                    success: false,
+                    data: {
+                        status: "Not Applied",
+                        pan: pan.toUpperCase(),
+                        name: null,
+                        shares: "0 Alloted",
+                        registrar: registrar
+                    }
+                });
+            }
+            else {
+                await User.findOneAndUpdate(
+                    { _id: req.user.id, "panCards.pan": pan.toUpperCase() },
+                    { $set: { "panCards.$.name": data.data[0]["Name"].split(".")[1].substring(1) } }
+                );
+                return res.json({
+                    success: true,
+                    data: {
+                        status: data.data[0].All_Shares > 0 ? "Allotted" : "Not Allotted",
+                        pan: pan.toUpperCase(),
+                        name: data.data[0]["Name"].split(".")[1].substring(1),
+                        shares: data.data[0].All_Shares + " Allotted",
+                        registrar: registrar
+                    }
+                });
+            }
+        }
+        res.json({
+            success: true,
+            data: {
+                pan: pan.toUpperCase(),
+                name: randomName,
+                status: randomStatus,
+                shares: sharesAllotted,
+                registrar: registrar
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: "Failed to check allotment" });
     }
 });
 app.get("/", (req, res) => {

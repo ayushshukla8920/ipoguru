@@ -212,7 +212,7 @@
                 document.getElementById('ipo-listing').textContent = data.listingDate.split("<")[0] || 'TBA';
                 document.getElementById('registrar-logo').src = data.registrarLogo;
                 document.getElementById('registrar-name').textContent = data.registrar;
-                document.getElementById('allotment-btn').href = `/allotment.html?slug=${slug}&name=${encodeURIComponent(data.name)}`;
+                document.getElementById('allotment-btn').href = `/allotment.html?slug=${slug}&name=${encodeURIComponent(data.name)}&registrar=${encodeURIComponent(data.registrar)}&listingDate=${encodeURIComponent(data.listingDate)}`;
                 document.title = `${data.name} - IPO Guru`;
                 document.getElementById('loading-state').classList.add('hidden');
                 document.getElementById('ipo-content').classList.remove('hidden');
