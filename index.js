@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const path = require("path");
-const { error } = require("console");
+const xml2js = require("xml2js");
 require("dotenv").config();
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -54,7 +54,6 @@ app.get("/api/ipos", async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const ipos = reportTableData
-            .filter(el => new Date(el["~Str_Listing"]) >= today)
             .map(el => {
                 const name = el["~ipo_name"];
                 const slug = el.Name.split('"')[1].split("/")[2];
@@ -248,6 +247,27 @@ app.post("/api/checkallotedyet", async (req, res) => {
             const alloted = rf.find((item) => item.name.toLowerCase().includes(ipoName.toLowerCase().substring(0, ipoName.length - 5)));
             isAllotmentAvailable = alloted ? true : false;
             clientId = alloted?.clientId;
+        }
+        if (registrar == "Link Intime") {
+            const url = "https://in.mpms.mufg.com/Initial_Offer/IPO.aspx/GetDetails";
+            const data = await (await fetch(url, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json;charset:utf-8"
+                }
+            })).json();
+            const xmlString = data.d;
+            const parsed = await xml2js.parseStringPromise(xmlString, {
+                explicitArray: false,
+                trim: true
+            });
+            const rf = parsed.NewDataSet.Table.map(row => ({
+                company_id: row.company_id,
+                companyname: row.companyname
+            }));
+            const alloted = rf.find((item) => item.companyname.toLowerCase().includes(ipoName.toLowerCase().substring(0, ipoName.length - 5)));
+            isAllotmentAvailable = alloted ? true : false;
+            clientId = alloted?.company_id;
         }
         res.json({
             success: isAllotmentAvailable,
