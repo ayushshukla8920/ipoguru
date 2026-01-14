@@ -292,14 +292,14 @@ app.post("/api/checkallotment", protectApi, async (req, res) => {
             else {
                 await User.findOneAndUpdate(
                     { _id: req.user.id, "panCards.pan": pan.toUpperCase() },
-                    { $set: { "panCards.$.name": data.data[0]["Name"].split(".")[1].substring(1) } }
+                    { $set: { "panCards.$.name": data.data[0]["Name"] } }
                 );
                 return res.json({
                     success: true,
                     data: {
                         status: data.data[0].All_Shares > 0 ? "Allotted" : "Not Allotted",
                         pan: pan.toUpperCase(),
-                        name: data.data[0]["Name"].split(".")[1].substring(1),
+                        name: data.data[0]["Name"],
                         shares: data.data[0].All_Shares + " Allotted",
                         registrar: registrar
                     }
