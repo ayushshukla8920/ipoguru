@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPO Details - IPO Guru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#0a0b0f', 800: '#12141a', 700: '#1a1d26', 600: '#252a36', 500: '#2d3344' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0b0f 0%, #12141a 50%, #0f1015 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(26, 29, 38, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #1a1d26 25%, #252a36 50%, #1a1d26 75%);
+            background-size: 200% 100%;
+            animation: skeleton 1.5s infinite;
+        }
+
+        @keyframes skeleton {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .glow-green {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+
+<body class="text-gray-100">
+    <header class="fixed top-0 left-0 right-0 z-50 border-b border-white/5">
+        <div class="glass-card">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <a href="/" class="flex items-center gap-3 group">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold text-white">IPO Guru</span>
+                    </a>
+                    <a href="/"
+                        class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div id="loading-state">
+                <div class="skeleton h-10 w-64 rounded-lg mb-4"></div>
+                <div class="skeleton h-6 w-40 rounded-lg mb-8"></div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                    <div class="skeleton glass-card rounded-xl h-24"></div>
+                    <div class="skeleton glass-card rounded-xl h-24"></div>
+                    <div class="skeleton glass-card rounded-xl h-24"></div>
+                    <div class="skeleton glass-card rounded-xl h-24"></div>
+                </div>
+            </div>
+            <div id="ipo-content" class="hidden">
+                <div class="mb-8">
+                    <h1 id="ipo-name" class="text-3xl sm:text-4xl font-extrabold text-white mb-2"></h1>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span id="ipo-status"
+                            class="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30"></span>
+                        <span class="text-gray-500">•</span>
+                        <span class="text-gray-400 text-sm">Last updated: <span id="update-time"></span></span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-card rounded-2xl p-5 text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Price</p>
+                        <p id="ipo-price" class="text-2xl font-bold text-white"></p>
+                    </div>
+                    <div class="glass-card rounded-2xl p-5 text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Lot Size</p>
+                        <p id="ipo-lot" class="text-2xl font-bold text-white"></p>
+                    </div>
+                    <div id="gmp-card" class="glass-card rounded-2xl p-5 text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">GMP</p>
+                        <p id="ipo-gmp" class="text-2xl font-bold"></p>
+                        <p id="ipo-gmp-percent" class="text-xs mt-1"></p>
+                    </div>
+                    <div class="glass-card rounded-2xl p-5 text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Subscription</p>
+                        <p id="ipo-subscription" class="text-2xl font-bold text-amber-400"></p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-white mb-5">Key Dates</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Open Date</p>
+                            <p id="ipo-open" class="font-semibold text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Close Date</p>
+                            <p id="ipo-close" class="font-semibold text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Allotment</p>
+                            <p id="ipo-allotment" class="font-semibold text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Listing</p>
+                            <p id="ipo-listing" class="font-semibold text-amber-400"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-white mb-4">Registrar</h2>
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 px-4 bg-white rounded-lg flex items-center justify-center">
+                            <img id="registrar-logo" src="" alt="Registrar" class="h-8 object-contain">
+                        </div>
+                        <span id="registrar-name" class="text-gray-400"></span>
+                    </div>
+                </div>
+                <a id="allotment-btn" href="#"
+                    class="block w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-center font-bold rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98]">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Check Allotment Status
+                    </span>
+                </a>
+            </div>
+            <div id="error-state" class="hidden text-center py-20">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">IPO Not Found</h3>
+                <p class="text-gray-500 mb-6">The requested IPO could not be found</p>
+                <a href="/"
+                    class="inline-block px-6 py-3 bg-dark-600 hover:bg-dark-500 rounded-lg transition-colors">Back to
+                    Home</a>
+            </div>
+        </div>
+    </main>
+    <script>
+        async function loadIPO() {
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('slug');
+            if (!slug) { showError(); return; }
+            try {
+                const res = await fetch(`/api/ipos/${slug}`);
+                const { success, data } = await res.json();
+                if (!success) { showError(); return; }
+                document.getElementById('ipo-name').textContent = data.name;
+                document.getElementById('ipo-status').textContent = 'Upcoming';
+                document.getElementById('update-time').textContent = new Date().toLocaleTimeString();
+                document.getElementById('ipo-price').textContent = `₹${data.price}`;
+                document.getElementById('ipo-lot').textContent = data.lot;
+                document.getElementById('ipo-subscription').textContent = data.subscription;
+                const gmpCard = document.getElementById('gmp-card');
+                const gmpEl = document.getElementById('ipo-gmp');
+                const gmpPercentEl = document.getElementById('ipo-gmp-percent');
+                gmpEl.textContent = `${data.gmp >= 0 ? '+' : ''}₹${data.gmp}`;
+                gmpPercentEl.textContent = `${data.gmpPercent}%`;
+                if (data.gmp >= 0) { gmpEl.classList.add('text-green-400'); gmpPercentEl.classList.add('text-green-400/70'); gmpCard.classList.add('glow-green'); }
+                else { gmpEl.classList.add('text-red-400'); gmpPercentEl.classList.add('text-red-400/70'); gmpCard.classList.add('glow-red'); }
+                document.getElementById('ipo-open').textContent = data.openDate.split("<")[0] || 'TBA';
+                document.getElementById('ipo-close').textContent = data.closeDate.split("<")[0] || 'TBA';
+                document.getElementById('ipo-allotment').textContent = data.allotmentDate.split("<")[0] || 'TBA';
+                document.getElementById('ipo-listing').textContent = data.listingDate.split("<")[0] || 'TBA';
+                document.getElementById('registrar-logo').src = data.registrarLogo;
+                document.getElementById('registrar-name').textContent = data.registrar;
+                document.getElementById('allotment-btn').href = `/allotment.html?slug=${slug}&name=${encodeURIComponent(data.name)}`;
+                document.title = `${data.name} - IPO Guru`;
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('ipo-content').classList.remove('hidden');
+            } catch (err) { console.error(err); showError(); }
+        }
+        function showError() { document.getElementById('loading-state').classList.add('hidden'); document.getElementById('error-state').classList.remove('hidden'); }
+        loadIPO();
+    </script>
+</body>
+
+</html>

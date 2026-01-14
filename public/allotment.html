@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Allotment - IPO Guru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#0a0b0f', 800: '#12141a', 700: '#1a1d26', 600: '#252a36', 500: '#2d3344' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0b0f 0%, #12141a 50%, #0f1015 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(26, 29, 38, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+        }
+    </style>
+</head>
+
+<body class="text-gray-100">
+    <header class="fixed top-0 left-0 right-0 z-50 border-b border-white/5">
+        <div class="glass-card">
+            <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <a href="/" class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold text-white">IPO Guru</span>
+                    </a>
+                    <a id="back-btn" href="/"
+                        class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+            <div id="auth-required" class="hidden text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">Login Required</h2>
+                <p class="text-gray-500 mb-8 max-w-sm mx-auto">Sign in to save your PAN cards and check allotment status
+                    instantly</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/login"
+                        class="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all">Login</a>
+                    <a href="/signup"
+                        class="px-8 py-3 border border-gray-700 text-gray-300 font-semibold rounded-xl hover:border-gray-600 hover:bg-dark-700 transition-all">Create
+                        Account</a>
+                </div>
+            </div>
+            <div id="allotment-ui" class="hidden">
+                <div class="mb-8">
+                    <p class="text-sm text-gray-500 mb-1">Checking allotment for</p>
+                    <h1 id="ipo-name" class="text-2xl sm:text-3xl font-extrabold text-white"></h1>
+                </div>
+                <div class="glass-card rounded-2xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <h2 class="text-lg font-semibold text-white">Your PAN Cards</h2>
+                        <span id="pan-count" class="text-sm text-gray-500"></span>
+                    </div>
+                    <div id="pan-list" class="space-y-3 mb-5"></div>
+                    <div id="no-pans" class="hidden py-8 text-center">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-dark-600 flex items-center justify-center">
+                            <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
+                            </svg>
+                        </div>
+                        <p class="text-gray-500 text-sm">No PAN cards saved yet</p>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Add New PAN</h2>
+                    <form id="add-pan-form" class="flex gap-3">
+                        <input type="text" id="pan-input" placeholder="Enter PAN (e.g. ABCDE1234F)" maxlength="10"
+                            required
+                            class="flex-1 px-4 py-3 bg-dark-700 border border-dark-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 input-glow transition-all uppercase">
+                        <button type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] disabled:opacity-50">Add</button>
+                    </form>
+                    <p id="pan-error" class="hidden mt-3 text-sm text-red-400"></p>
+                    <p id="pan-success" class="hidden mt-3 text-sm text-green-400"></p>
+                </div>
+                <div class="mt-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <p class="text-sm text-blue-300"><strong>Note:</strong> Allotment status checking is simulated. In a
+                        real app, this would integrate with registrar APIs.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('slug');
+        const ipoName = params.get('name') || 'Unknown IPO';
+        if (slug) { document.getElementById('back-btn').href = `/ipo.html?slug=${slug}`; }
+        document.getElementById('ipo-name').textContent = decodeURIComponent(ipoName);
+        function getToken() { return localStorage.getItem('token'); }
+        function checkAuth() {
+            const token = getToken();
+            if (!token) { document.getElementById('auth-required').classList.remove('hidden'); document.getElementById('allotment-ui').classList.add('hidden'); return false; }
+            document.getElementById('auth-required').classList.add('hidden');
+            document.getElementById('allotment-ui').classList.remove('hidden');
+            return true;
+        }
+        async function loadPANs() {
+            if (!checkAuth()) return;
+            try {
+                const res = await fetch('/api/user/pan', { headers: { 'Authorization': `Bearer ${getToken()}` } });
+                const { success, data } = await res.json();
+                if (!success) { if (res.status === 401) { localStorage.removeItem('token'); localStorage.removeItem('user'); checkAuth(); } return; }
+                renderPANs(data);
+            } catch (err) { console.error('Failed to load PANs:', err); }
+        }
+        function renderPANs(pans) {
+            const panList = document.getElementById('pan-list');
+            const noPans = document.getElementById('no-pans');
+            const panCount = document.getElementById('pan-count');
+            panCount.textContent = `${pans.length} saved`;
+            if (pans.length === 0) { panList.innerHTML = ''; noPans.classList.remove('hidden'); return; }
+            noPans.classList.add('hidden');
+            panList.innerHTML = pans.map(pan => `
+                <div class="flex items-center justify-between p-4 bg-dark-600 rounded-xl group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/>
+                            </svg>
+                        </div>
+                        <span class="font-mono font-semibold text-white tracking-wide">${pan}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="checkStatus('${pan}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">Check</button>
+                        <button onclick="deletePAN('${pan}')" class="p-2 text-gray-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function checkStatus(pan) {
+            const statuses = [
+                { status: 'Allotted', shares: Math.floor(Math.random() * 5 + 1) * 14, color: 'green' },
+                { status: 'Not Allotted', shares: 0, color: 'red' },
+                { status: 'Pending', shares: 0, color: 'amber' }
+            ];
+            const result = statuses[Math.floor(Math.random() * statuses.length)];
+            alert(`Allotment Status for ${pan}:\n\nStatus: ${result.status}${result.shares ? `\nShares: ${result.shares}` : ''}\n\n(This is simulated data)`);
+        }
+        async function deletePAN(pan) {
+            if (!confirm(`Remove ${pan} from your saved PANs?`)) return;
+            try {
+                const res = await fetch(`/api/user/pan/${pan}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+                const data = await res.json();
+                if (data.success) { loadPANs(); }
+            } catch (err) { console.error('Failed to delete PAN:', err); }
+        }
+        document.getElementById('add-pan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const panInput = document.getElementById('pan-input');
+            const pan = panInput.value.toUpperCase().trim();
+            const errorEl = document.getElementById('pan-error');
+            const successEl = document.getElementById('pan-success');
+            if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) { errorEl.textContent = 'Invalid PAN format. Must be like ABCDE1234F'; errorEl.classList.remove('hidden'); successEl.classList.add('hidden'); return; }
+            errorEl.classList.add('hidden');
+            try {
+                const res = await fetch('/api/user/pan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify({ pan }) });
+                const data = await res.json();
+                if (data.success) { successEl.textContent = 'PAN added successfully!'; successEl.classList.remove('hidden'); panInput.value = ''; loadPANs(); setTimeout(() => successEl.classList.add('hidden'), 3000); }
+                else { errorEl.textContent = data.error || 'Failed to add PAN'; errorEl.classList.remove('hidden'); }
+            } catch (err) { errorEl.textContent = 'Network error. Please try again.'; errorEl.classList.remove('hidden'); }
+        });
+        loadPANs();
+    </script>
+</body>
+
+</html>

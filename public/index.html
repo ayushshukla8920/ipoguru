@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPO Guru - Live GMP & Allotment Tracker</title>
+    <meta name="description"
+        content="Track IPO Grey Market Premium (GMP), allotment status, and key dates for upcoming listings">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#0a0b0f', 800: '#12141a', 700: '#1a1d26', 600: '#252a36', 500: '#2d3344' },
+                        accent: { gold: '#f59e0b', orange: '#f97316' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0b0f 0%, #12141a 50%, #0f1015 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(26, 29, 38, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .glow-gold {
+            box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #1a1d26 25%, #252a36 50%, #1a1d26 75%);
+            background-size: 200% 100%;
+            animation: skeleton 1.5s infinite;
+        }
+
+        @keyframes skeleton {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="text-gray-100">
+    <header class="fixed top-0 left-0 right-0 z-50 border-b border-white/5">
+        <div class="glass-card">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <a href="/" class="flex items-center gap-3 group">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-white">IPO Guru</h1>
+                            <p class="text-xs text-gray-500 hidden sm:block">Live GMP Tracker</p>
+                        </div>
+                    </a>
+                    <nav class="flex items-center gap-4">
+                        <div id="auth-buttons" class="flex items-center gap-3">
+                            <a href="/login"
+                                class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors">Login</a>
+                            <a href="/signup"
+                                class="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-lg transition-all hover:shadow-lg hover:shadow-orange-500/25">Sign
+                                Up</a>
+                        </div>
+                        <div id="user-menu" class="hidden items-center gap-3">
+                            <span id="user-phone" class="text-sm text-gray-400"></span>
+                            <button onclick="logout()"
+                                class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600 rounded-lg transition-all">Logout</button>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <section class="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 mb-6">
+                    <span class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></span>
+                    <span class="text-sm font-medium text-amber-400">Live GMP Data</span>
+                </div>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">Track <span
+                        class="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Upcoming
+                        IPOs</span></h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto">Real-time Grey Market Premium, key dates, and instant
+                    allotment status check for all upcoming listings</p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+                <div class="glass-card rounded-xl p-4 text-center">
+                    <p class="text-2xl font-bold text-white" id="stat-total">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Active IPOs</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 text-center">
+                    <p class="text-2xl font-bold text-green-400" id="stat-positive">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Positive GMP</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 text-center">
+                    <p class="text-2xl font-bold text-red-400" id="stat-negative">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Negative GMP</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 text-center">
+                    <p class="text-2xl font-bold text-amber-400" id="stat-listing">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Listing Today</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="pb-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+            <div id="ipo-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="skeleton glass-card rounded-2xl h-64"></div>
+                <div class="skeleton glass-card rounded-2xl h-64"></div>
+                <div class="skeleton glass-card rounded-2xl h-64"></div>
+            </div>
+            <div id="empty-state" class="hidden text-center py-20">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-dark-700 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">No Active IPOs</h3>
+                <p class="text-gray-500">Check back soon for upcoming listings</p>
+            </div>
+        </div>
+    </section>
+    <footer class="border-t border-white/5 py-8 px-4">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-sm text-gray-600">Data sourced from market aggregators • Not investment advice</p>
+        </div>
+    </footer>
+    <script>
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (token && user.phone) {
+                document.getElementById('auth-buttons').classList.add('hidden');
+                document.getElementById('user-menu').classList.remove('hidden');
+                document.getElementById('user-menu').classList.add('flex');
+                document.getElementById('user-phone').textContent = user.phone;
+            }
+        }
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.reload();
+        }
+        async function loadIPOs() {
+            try {
+                const res = await fetch('/api/ipos');
+                const { success, data } = await res.json();
+                if (!success || !data.length) {
+                    document.getElementById('ipo-grid').innerHTML = '';
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('stat-total').textContent = data.length;
+                document.getElementById('stat-positive').textContent = data.filter(i => i.gmp > 0).length;
+                document.getElementById('stat-negative').textContent = data.filter(i => i.gmp < 0).length;
+                const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                const listingToday = data.filter(i => i.listingDate === today).length;
+                document.getElementById('stat-listing').textContent = listingToday;
+                document.getElementById('ipo-grid').innerHTML = data.map(ipo => `
+                    <a href="/ipo.html?slug=${ipo.slug}" class="glass-card rounded-2xl p-6 card-hover transition-all duration-300 block group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-white text-lg truncate group-hover:text-amber-400 transition-colors">${ipo.name}</h3>
+                                <p class="text-sm text-gray-500 mt-1">₹${ipo.price} • Lot ${ipo.lot}</p>
+                            </div>
+                            <div class="text-right ml-4">
+                                <p class="text-xl font-bold ${ipo.gmp >= 0 ? 'text-green-400' : 'text-red-400'}">${ipo.gmp >= 0 ? '+' : ''}₹${ipo.gmp}</p>
+                                <p class="text-xs ${ipo.gmp >= 0 ? 'text-green-400/70' : 'text-red-400/70'}">${ipo.gmpPercent}%</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">Listing Date</span>
+                                <span class="font-medium text-white">${ipo.listingDate}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">Allotment</span>
+                                <span class="font-medium text-white">${ipo.allotmentDate}</span>
+                            </div>
+                        </div>
+                        <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                            <span class="text-xs text-gray-500">View Details</span>
+                            <svg class="w-5 h-5 text-gray-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                            </svg>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load IPOs:', err);
+                document.getElementById('ipo-grid').innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-red-400">Failed to load IPO data. Please try again.</p>
+                        <button onclick="loadIPOs()" class="mt-4 px-6 py-2 bg-dark-600 hover:bg-dark-500 rounded-lg text-sm transition-colors">Retry</button>
+                    </div>
+                `;
+            }
+        }
+        checkAuth();
+        loadIPOs();
+    </script>
+</body>
+
+</html>

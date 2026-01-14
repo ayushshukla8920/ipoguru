@@ -1,296 +1,211 @@
 const express = require("express");
+const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
 const app = express();
-
-app.use(cors());
-
+const JWT_SECRET = process.env.JWT_SECRET;
+mongoose.connect(process.env.MONGODB_URI).then(() => console.log("MongoDB Connected"));
+const userSchema = new mongoose.Schema({
+    phone: { type: String, unique: true, required: true },
+    pin: { type: String, required: true },
+    panCards: [String]
+});
+const User = mongoose.model("User", userSchema);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.static(path.join(__dirname, "public")));
 const registrarLogos = {
     "K-Fintech": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMor6R-6eWVrfYwc-p_5MrUkKzbJsujNNX0w&s",
     "Bigshare": "https://s3-us-west-2.amazonaws.com/cbi-image-service-prd/original/2a942901-f5da-423a-990f-a769a63cbc49.png",
     "Link Intime": "https://www.linkintime.co.in/images/Link-Intime_Logo.png"
 };
-
-app.get("/", async (req, res) => {
+const protectApi = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    const token = authHeader.split(" ")[1];
     try {
-        const url = "https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo";
-        const response = await fetch(url);
-        const { reportTableData } = await response.json();
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: "Invalid token" });
+    }
+};
+async function getIpoData() {
+    const response = await fetch("https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo");
+    return await response.json();
+}
+app.get("/api/ipos", async (req, res) => {
+    try {
+        const { reportTableData } = await getIpoData();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const rowPromises = reportTableData.map(async (el) => {
-            const listingDate = new Date(el["~Str_Listing"]);
-            const name = el.Name.split(">")[1].split("<")[0];
-            const ipoPath = el.Name.split('"')[1].substring(4);
-            const rrp = await fetch("https://investorgain.com/ipo" + ipoPath);
-            const html = await rrp.text();
-            let regType = "Unknown";
-            if (html.includes("Kfin Technologies Ltd.")) regType = "K-Fintech";
-            else if (html.includes("Bigshare Services Pvt.Ltd.")) regType = "Bigshare";
-            else if (html.includes("Link Intime India Private Ltd")) regType = "Link Intime";
-            const logoUrl = registrarLogos[regType];
-            const registrarDisplay = logoUrl
-                ? `<div class="reg-logo-wrapper"><img src="${logoUrl}" title="${regType}" alt="${regType}" /></div>`
-                : `<span class="badge-unknown">${regType}</span>`;
-            const gmpRaw = el.GMP.includes("<b>") ? el.GMP.split("<b>")[1].split("</b>")[0] : "0";
-            const gmpAmt = parseFloat(gmpRaw.replace(/[^\d.-]/g, '')) || 0;
-            const gmpPercent = el["~gmp_percent_calc"] || "0";
-            const gmpClass = gmpAmt < 0 ? "negative-gmp" : "positive-gmp";
-            return `
-                <tr>
-                    <td class="name-cell">
-                        <strong>${name}</strong>
-                        <div class="sub-text">Price: ₹${el["Price (₹)"]} | Lot: ${el.Lot}</div>
-                    </td>
-                    <td>
-                        <div class="gmp-val ${gmpClass}">₹${gmpAmt}</div>
-                        <div class="gmp-pct">${gmpPercent}%</div>
-                    </td>
-                    <td>
-                        <div class="date-grid">
-                            <span>Allotment: <b>${el["BoA Dt"]}</b></span>
-                            <span>Listing: <b>${el["Listing"].split("<")[0]}</b></span>
-                        </div>
-                    </td>
-                    <td class="reg-cell">${registrarDisplay}</td>
-                </tr>
-            `;
-        });
-        const rowsContent = (await Promise.all(rowPromises)).filter(row => row !== null).join("");
-        const htmlPage = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>IPO Guru</title>
-            <style>
-                :root {
-                    --bg: #0f1115;
-                    --card: #1c1f26;
-                    --accent: #ffb700ff;
-                    --border: #2d333f;
-                    --text-main: #f3f4f6;
-                    --text-dim: #9ca3af;
-                    --success: #10b981;
-                    --danger: #ef4444;
-                }
-                body {
-                    margin: 0;
-                    font-family: 'Segoe UI', Roboto, sans-serif;
-                    background-color: var(--bg);
-                    color: var(--text-main);
-                }
-                .container {
-                    max-width: 1000px;
-                    margin: 40px auto;
-                    padding: 0 20px;
-                }
-                header {
-                    margin-bottom: 30px;
-                    border-left: 4px solid var(--accent);
-                    padding-left: 15px;
-                }
-                h1 { margin: 0; font-size: 24px; letter-spacing: -0.5px; }
-                p { color: var(--text-dim); margin: 5px 0 0 0; font-size: 14px; }
-
-                .table-container {
-                    background: var(--card);
-                    border-radius: 12px;
-                    border: 1px solid var(--border);
-                    overflow: hidden;
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    text-align: left;
-                }
-                th {
-                    background: #252a33;
-                    padding: 16px;
-                    color: var(--text-dim);
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-                td {
-                    padding: 18px 16px;
-                    border-bottom: 1px solid var(--border);
-                }
-                tr:last-child td { border-bottom: none; }
-                tr:hover { background-color: #252a33; }
-
-                .name-cell strong { display: block; font-size: 16px; margin-bottom: 4px; color: var(--accent); }
-                .sub-text { font-size: 12px; color: var(--text-dim); }
-                
-                .gmp-val { font-weight: 700; font-size: 17px; }
-                .positive-gmp { color: var(--success); }
-                .negative-gmp { color: var(--danger); }
-                .gmp-pct { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-
-                .date-grid { font-size: 12px; line-height: 1.6; }
-                .date-grid b { color: var(--text-main); }
-                .date-grid span { display: block; }
-
-                .reg-logo-wrapper {
-                    height: 40px;
-                    width: 110px;
-                    background: white;
-                    padding: 5px;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-                }
-                .reg-logo-wrapper img {
-                    max-height: 100%;
-                    max-width: 100%;
-                    object-fit: contain;
-                }
-                .badge-unknown {
-                    font-size: 11px;
-                    padding: 4px 8px;
-                    background: var(--border);
-                    border-radius: 4px;
-                    color: var(--text-dim);
-                }
-                @media (max-width: 600px) {
-                    .date-grid span { font-size: 10px; }
-                    .reg-logo-wrapper { width: 80px; height: 30px; }
-                    .container { margin: 20px auto; }
-                }
-                a{
-                    color: var(--accent);
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <header>
-                    <h1>IPO Guru</h1>
-                    <p>Live GMP data & Registrar details for upcoming listings <a href="/old">switch to old view</a></p>
-                </header>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>IPO Details</th>
-                                <th>GMP Status</th>
-                                <th>Key Dates</th>
-                                <th>Registrar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rowsContent || '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-dim);">No upcoming IPOs found at the moment.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </body>
-        </html>
-        `;
-        res.status(200).send(htmlPage);
+        const ipos = reportTableData
+            .filter(el => new Date(el["~Str_Listing"]) >= today)
+            .map(el => {
+                const name = el["~ipo_name"];
+                const slug = el.Name.split('"')[1].split("/")[2];
+                const gmpRaw = el.GMP.includes("<b>") ? el.GMP.split("<b>")[1].split("</b>")[0] : "0";
+                const gmpAmt = parseFloat(gmpRaw.replace(/[^\d.-]/g, '')) || 0;
+                const gmpPercent = el["~gmp_percent_calc"] || "0";
+                return {
+                    name,
+                    slug,
+                    price: el["Price (₹)"],
+                    lot: el.Lot,
+                    gmp: gmpAmt,
+                    gmpPercent,
+                    listingDate: el.Listing.split("<")[0],
+                    allotmentDate: el["BoA Dt"],
+                    openDate: el["Open"],
+                    closeDate: el["Close"]
+                };
+            });
+        res.json({ success: true, data: ipos });
     } catch (err) {
         console.error(err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ success: false, error: "Failed to fetch IPO data" });
     }
 });
-app.get("/old", async (req, res) => {
+app.get("/api/ipos/:slug", async (req, res) => {
     try {
-        const url = "https://webnodejs.investorgain.com/cloud/report/data-read/331/1/12/2025/2025-26/0/ipo";
-        const response = await fetch(url);
-        const { reportTableData } = await response.json();
-        const rowPromises = reportTableData.map(async (el) => {
-            const name = el.Name.split(">")[1].split("<")[0];
-            const ipoPath = el.Name.split('"')[1].substring(4);
-            const rrp = await fetch("https://investorgain.com/ipo" + ipoPath);
-            const html = await rrp.text();
-            let reg = "Unknown";
-            if (html.includes("Kfin Technologies Ltd.")) reg = "K-Fintech";
-            else if (html.includes("Bigshare Services Pvt.Ltd.")) reg = "Bigshare";
-            else if (html.includes("Link Intime India Private Ltd")) reg = "Link Intime";
-            const gmpValue = el.GMP.split(">")[1].split("<")[0];
-            const amt = gmpValue !== "--" ? Number(gmpValue) : 0;
-            const percentage = el.GMP.split(">")[2]
-                .split("<")[0]
-                .split("(")[1]
-                .split(")")[0];
-            return `
-                <tr>
-                    <td>${name}</td>
-                    <td>${amt}</td>
-                    <td>${percentage}</td>
-                    <td>${reg}</td>
-                </tr>
-            `;
+        const { reportTableData } = await getIpoData();
+        const item = reportTableData.find(el => el.Name.includes(req.params.slug));
+        if (!item) return res.status(404).json({ success: false, error: "IPO not found" });
+        const ipoPath = item.Name.split('"')[1];
+        const rrp = await fetch("https://investorgain.com" + ipoPath);
+        const html = await rrp.text();
+        let regType = html.includes("Kfin") ? "K-Fintech" : html.includes("Bigshare") ? "Bigshare" : "Link Intime";
+        const gmpRaw = item.GMP.includes("<b>") ? item.GMP.split("<b>")[1].split("</b>")[0] : "0";
+        const gmpAmt = parseFloat(gmpRaw.replace(/[^\d.-]/g, '')) || 0;
+        const gmpPercent = item["~gmp_percent_calc"] || "0";
+        res.json({
+            success: true,
+            data: {
+                name: item["~ipo_name"],
+                slug: req.params.slug,
+                price: item["Price (₹)"],
+                lot: item.Lot,
+                gmp: gmpAmt,
+                gmpPercent,
+                listingDate: item.Listing.split("<")[0],
+                allotmentDate: item["BoA Dt"],
+                openDate: item["Open"],
+                closeDate: item["Close"],
+                registrar: regType,
+                registrarLogo: registrarLogos[regType],
+                subscription: item["Subs (x)"] || "N/A"
+            }
         });
-        const rows = (await Promise.all(rowPromises)).join("");
-        const htmlPage = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8" />
-            <title>IPO GMP</title>
-            <style>
-                body {
-                    margin: 0;
-                    font-family: Arial, Helvetica, sans-serif;
-                    background-color: #1e1e1e;
-                    color: #e0e0e0;
-                }
-                .container {
-                    max-width: 900px;
-                    margin: 40px auto;
-                    padding: 20px;
-                }
-                h1 {
-                    font-size: 20px;
-                    margin-bottom: 20px;
-                    font-weight: 500;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                th, td {
-                    padding: 10px;
-                    text-align: left;
-                    border-bottom: 1px solid #333;
-                }
-                th {
-                    color: #b0b0b0;
-                    font-weight: 600;
-                }
-                tr:hover {
-                    background-color: #2a2a2a;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>IPO Grey Market Premium (GMP)</h1>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>IPO Name</th>
-                            <th>GMP Amount</th>
-                            <th>GMP %</th>
-                            <th>Registrar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-            </div>
-        </body>
-        </html>
-        `;
-        res.status(200).send(htmlPage);
     } catch (err) {
         console.error(err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ success: false, error: "Failed to fetch IPO details" });
     }
 });
-app.listen(3000, () => console.log("Server running at http://localhost:3000"));
+app.post("/api/auth/signup", async (req, res) => {
+    try {
+        const { phone, pin } = req.body;
+        if (!phone || !pin) {
+            return res.status(400).json({ success: false, error: "Phone and PIN are required" });
+        }
+        if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+            return res.status(400).json({ success: false, error: "PIN must be exactly 4 digits" });
+        }
+        const existingUser = await User.findOne({ phone });
+        if (existingUser) {
+            return res.status(400).json({ success: false, error: "Phone number already registered" });
+        }
+        const hashedPin = await bcrypt.hash(pin, 10);
+        const user = await User.create({ phone, pin: hashedPin, panCards: [] });
+        res.json({ success: true, message: "Account created successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: "Failed to create account" });
+    }
+});
+app.post("/api/auth/login", async (req, res) => {
+    try {
+        const { phone, pin } = req.body;
+        if (!phone || !pin) {
+            return res.status(400).json({ success: false, error: "Phone and PIN are required" });
+        }
+        const user = await User.findOne({ phone });
+        if (!user) {
+            return res.status(401).json({ success: false, error: "Account not found" });
+        }
+        const isMatch = await bcrypt.compare(pin, user.pin);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: "Invalid PIN" });
+        }
+        const token = jwt.sign({ id: user._id, phone: user.phone }, JWT_SECRET, { expiresIn: "7d" });
+        res.json({
+            success: true,
+            token,
+            user: { phone: user.phone, panCount: user.panCards.length }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: "Login failed" });
+    }
+});
+app.get("/api/user/profile", protectApi, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-pin");
+        if (!user) return res.status(404).json({ success: false, error: "User not found" });
+        res.json({ success: true, data: { phone: user.phone, panCards: user.panCards } });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Failed to fetch profile" });
+    }
+});
+app.get("/api/user/pan", protectApi, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        res.json({ success: true, data: user.panCards });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Failed to fetch PAN cards" });
+    }
+});
+app.post("/api/user/pan", protectApi, async (req, res) => {
+    try {
+        const { pan } = req.body;
+        if (!pan || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.toUpperCase())) {
+            return res.status(400).json({ success: false, error: "Invalid PAN format" });
+        }
+        await User.findByIdAndUpdate(req.user.id, { $addToSet: { panCards: pan.toUpperCase() } });
+        res.json({ success: true, message: "PAN added successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Failed to add PAN" });
+    }
+});
+app.delete("/api/user/pan/:pan", protectApi, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user.id, { $pull: { panCards: req.params.pan } });
+        res.json({ success: true, message: "PAN removed successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Failed to remove PAN" });
+    }
+});
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+app.get("/signup", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "signup.html"));
+});
+app.get("/allotment", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "allotment.html"));
+});
+app.get("/ipo", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "ipo.html"));
+});
+app.listen(3000, () => console.log("API Server running at http://localhost:3000"));
