@@ -80,9 +80,13 @@ app.get("/api/ipos/:slug", async (req, res) => {
         const { reportTableData } = await getIpoData();
         const item = reportTableData.find(el => el.Name.includes(req.params.slug));
         if (!item) return res.status(404).json({ success: false, error: "IPO not found" });
-        const ipoPath = item.Name.split('"')[1];
-        const rrp = await fetch("https://investorgain.com" + ipoPath);
+        const ipoPath = item.Name.split('"')[1].substring(4);
+        const rrp = await fetch("https://investorgain.com/ipo/" + ipoPath);
         const html = await rrp.text();
+        const subs = await fetch("https://webnodejs.chittorgarh.com/cloud/report/data-read/21/1/1/2026/2025-26/0/0/0");
+        const subsjson = await subs.json();
+        const subsData = subsjson.reportTableData;
+        const subsItem = subsData.find(el => el["~URLRewrite_Folder_Name"].includes(req.params.slug)) || {};
         let regType = html.includes("Kfin") ? "K-Fintech" : html.includes("Bigshare") ? "Bigshare" : "Link Intime";
         const gmpRaw = item.GMP.includes("<b>") ? item.GMP.split("<b>")[1].split("</b>")[0] : "0";
         const gmpAmt = parseFloat(gmpRaw.replace(/[^\d.-]/g, '')) || 0;
@@ -102,7 +106,7 @@ app.get("/api/ipos/:slug", async (req, res) => {
                 closeDate: item["Close"],
                 registrar: regType,
                 registrarLogo: registrarLogos[regType],
-                subscription: item["Subs (x)"] || "N/A"
+                subscription: subsItem["Total (x)"] ? subsItem["Total (x)"] + "x" : "N/A"
             }
         });
     } catch (err) {

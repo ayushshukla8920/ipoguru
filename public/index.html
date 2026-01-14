@@ -7,6 +7,7 @@
     <title>IPO Guru - Live GMP & Allotment Tracker</title>
     <meta name="description"
         content="Track IPO Grey Market Premium (GMP), allotment status, and key dates for upcoming listings">
+    <meta name="theme-color" content="#0a0b0f">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,6 +25,10 @@
         }
     </script>
     <style>
+        html {
+            background-color: #0a0b0f;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #0a0b0f 0%, #12141a 50%, #0f1015 100%);
@@ -131,7 +136,7 @@
             </div>
         </div>
     </header>
-    <section class="pt-28 pb-12 px-4 sm:px-6 lg:px-8">
+    <section class="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-12">
                 <div
@@ -145,22 +150,25 @@
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto">Real-time Grey Market Premium, key dates, and instant
                     allotment status check for all upcoming listings</p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-                <div class="glass-card rounded-xl p-4 text-center">
-                    <p class="text-2xl font-bold text-white" id="stat-total">-</p>
-                    <p class="text-xs text-gray-500 mt-1">Active IPOs</p>
+            <div class="glass-card rounded-xl p-4 flex items-center justify-around flex-nowrap">
+                <div class="text-center px-2 sm:px-4">
+                    <p class="text-lg sm:text-3xl font-bold text-white" id="stat-total">-</p>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-1">Active IPOs</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center">
-                    <p class="text-2xl font-bold text-green-400" id="stat-positive">-</p>
-                    <p class="text-xs text-gray-500 mt-1">Positive GMP</p>
+                <div class="w-px h-8 sm:h-10 bg-white/10"></div>
+                <div class="text-center px-2 sm:px-4">
+                    <p class="text-lg sm:text-3xl font-bold text-green-400" id="stat-positive">-</p>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-1">Positive GMP</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center">
-                    <p class="text-2xl font-bold text-red-400" id="stat-negative">-</p>
-                    <p class="text-xs text-gray-500 mt-1">Negative GMP</p>
+                <div class="w-px h-8 sm:h-10 bg-white/10"></div>
+                <div class="text-center px-2 sm:px-4">
+                    <p class="text-lg sm:text-3xl font-bold text-red-400" id="stat-negative">-</p>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-1">Negative GMP</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center">
-                    <p class="text-2xl font-bold text-amber-400" id="stat-listing">-</p>
-                    <p class="text-xs text-gray-500 mt-1">Listing Today</p>
+                <div class="w-px h-8 sm:h-10 bg-white/10"></div>
+                <div class="text-center px-2 sm:px-4">
+                    <p class="text-lg sm:text-3xl font-bold text-amber-400" id="stat-listing">-</p>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-1">Listing Today</p>
                 </div>
             </div>
         </div>
@@ -221,7 +229,7 @@
                 const listingToday = data.filter(i => i.listingDate === today).length;
                 document.getElementById('stat-listing').textContent = listingToday;
                 document.getElementById('ipo-grid').innerHTML = data.map(ipo => `
-                    <a href="/ipo.html?slug=${ipo.slug}" class="glass-card rounded-2xl p-6 card-hover transition-all duration-300 block group">
+                    <a href="/ipo?slug=${ipo.slug}" class="glass-card rounded-2xl p-6 card-hover transition-all duration-300 block group">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex-1 min-w-0">
                                 <h3 class="font-bold text-white text-lg truncate group-hover:text-amber-400 transition-colors">${ipo.name}</h3>
@@ -234,12 +242,20 @@
                         </div>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">Open Date</span>
+                                <span class="font-medium text-white">${ipo.openDate.split("<")[0]}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">Close Date</span>
+                                <span class="font-medium text-white">${ipo.closeDate.split("<")[0]}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
                                 <span class="text-gray-500">Listing Date</span>
-                                <span class="font-medium text-white">${ipo.listingDate}</span>
+                                <span class="font-medium text-white">${ipo.listingDate.split("<")[0]}</span>
                             </div>
                             <div class="flex items-center justify-between text-sm">
                                 <span class="text-gray-500">Allotment</span>
-                                <span class="font-medium text-white">${ipo.allotmentDate}</span>
+                                <span class="font-medium text-white">${ipo.allotmentDate.split("<")[0]}</span>
                             </div>
                         </div>
                         <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
