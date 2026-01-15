@@ -365,4 +365,7 @@ app.get("/allotment", (req, res) => {
 app.get("/ipo", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "ipo.html"));
 });
+app.get("/download/android", (req, res) => {
+    res.download(path.join(__dirname, "public", "IPOGuru.apk"));
+});
 app.listen(3000, () => console.log("API Server running at http://localhost:3000"));
