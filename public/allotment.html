@@ -235,6 +235,7 @@
                 document.getElementById('status-loading').classList.add('hidden');
                 document.getElementById('status-not-available').classList.remove('hidden');
                 allotmentAvailable = false;
+                renderPANs(currentPANs);
                 return;
             }
             try {
@@ -256,11 +257,13 @@
                     document.getElementById('status-not-available').classList.remove('hidden');
                     allotmentAvailable = false;
                 }
+                renderPANs(currentPANs);
             } catch (err) {
                 console.error('Failed to check allotment:', err);
                 document.getElementById('status-loading').classList.add('hidden');
                 document.getElementById('status-not-available').classList.remove('hidden');
                 allotmentAvailable = false;
+                renderPANs(currentPANs);
             }
         }
         async function loadPANs() {
@@ -280,7 +283,7 @@
                 renderPANs(data);
             } catch (err) { console.error('Failed to load PANs:', err); }
         }
-        function renderPANs(pans) {
+        function renderPANs(pans, preserveStatus = false) {
             const panList = document.getElementById('pan-list');
             const noPans = document.getElementById('no-pans');
             const panCount = document.getElementById('pan-count');
@@ -288,14 +291,41 @@
             if (pans.length === 0) { panList.innerHTML = ''; noPans.classList.remove('hidden'); return; }
             noPans.classList.add('hidden');
             panList.innerHTML = pans.map(panObj => {
-                const isUnknown = panObj.name === 'Unknown';
-                const statusHtml = panObj.lastStatus ? `
-                    <div class="mt-2 flex items-center gap-2">
-                        ${panObj.lastStatus === 'Allotted'
-                        ? `<span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded-lg">✓ Allotted (${panObj.shares} shares)</span>`
-                        : `<span class="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-medium rounded-lg">✗ Not Allotted</span>`}
-                    </div>
-                ` : '';
+                const isUnknown = !panObj.name || panObj.name === 'Unknown';
+                const displayName = isUnknown ? 'Name pending verification' : panObj.name;
+                let statusHtml = '';
+                if (panObj.lastStatus === 'Allotted') {
+                    statusHtml = `
+                        <div class="mt-2 flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <span class="font-semibold text-green-400">Allotted!</span>
+                                <span class="text-gray-300 ml-2">${panObj.shares} to ${panObj.name}</span>
+                            </div>
+                        </div>`;
+                } else if (panObj.lastStatus === 'Not Allotted' || panObj.lastStatus === 'Not Applied') {
+                    statusHtml = `
+                        <div class="mt-2 flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <span class="font-semibold text-red-400">${panObj.lastStatus}</span>
+                            </div>
+                        </div>`;
+                } else if (panObj.lastStatus === 'Error') {
+                    statusHtml = `
+                        <div class="mt-2 flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div>
+                                <span class="font-semibold text-gray-400">${panObj.shares}</span>
+                            </div>
+                        </div>`;
+                }
                 return `
                 <div id="pan-card-${panObj.pan}" class="flex flex-col p-4 bg-dark-600 rounded-xl group">
                     <div class="flex items-center justify-between">
@@ -318,7 +348,7 @@
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0 ml-3">
                             ${allotmentAvailable
-                        ? `<button onclick="checkStatus('${panObj.pan}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">Check</button>`
+                        ? `<button id="check-btn-${panObj.pan}" onclick="checkStatus('${panObj.pan}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">Check</button>`
                         : ''}
                             <button onclick="deletePAN('${panObj.pan}')" class="p-2 text-gray-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,7 +357,7 @@
                             </button>
                         </div>
                     </div>
-                    <div id="status-${panObj.pan}" class="mt-2 hidden"></div>
+                    ${statusHtml}
                 </div>
             `}).join('');
         }
@@ -336,17 +366,11 @@
                 alert('Allotment results are not yet available for this IPO.');
                 return;
             }
-            const statusEl = document.getElementById(`status-${pan}`);
-            statusEl.classList.remove('hidden');
-            statusEl.innerHTML = `
-                <div class="flex items-center gap-2 p-3 bg-dark-700 rounded-lg">
-                    <svg class="animate-spin w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="text-sm text-gray-400">Checking allotment...</span>
-                </div>
-            `;
+            const checkBtn = document.getElementById(`check-btn-${pan}`);
+            if (checkBtn) {
+                checkBtn.disabled = true;
+                checkBtn.innerHTML = `<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            }
             try {
                 const res = await fetch('/api/checkallotment', {
                     method: 'POST',
@@ -357,54 +381,25 @@
                     body: JSON.stringify({
                         ipoName: decodeURIComponent(ipoName),
                         registrar: decodeURIComponent(registrar),
-                        pan: pan
+                        pan: pan,
+                        clientId
                     })
                 });
                 const { success, data } = await res.json();
                 if (success) {
-                    currentPANs = currentPANs.map(p => p.pan === pan ? { ...p, name: data.name, lastStatus: data.status, shares: data.shares } : p);
-                    if (data.status === 'Allotted') {
-                        statusEl.innerHTML = `
-                            <div class="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <div>
-                                    <span class="font-semibold text-green-400">Allotted!</span>
-                                    <span class="text-gray-300 ml-2">${data.shares} shares to ${data.name}</span>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        statusEl.innerHTML = `
-                            <div class="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <div>
-                                    <span class="font-semibold text-red-400">Not Allotted</span>
-                                    <span class="text-gray-400 ml-2">${data.name}</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    await loadPANs();
+                    currentPANs = currentPANs.map(p => p.pan === pan ? { ...p, name: data.name || p.name, lastStatus: data.status, shares: data.shares } : p);
+                    renderPANs(currentPANs);
                 } else {
-                    statusEl.innerHTML = `
-                        <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                            <span class="text-red-400">Failed to check status. Please try again.</span>
-                        </div>
-                    `;
+                    currentPANs = currentPANs.map(p => p.pan === pan ? { ...p, lastStatus: 'Error', shares: 'Not Applied' } : p);
+                    renderPANs(currentPANs);
                 }
             } catch (err) {
                 console.error('Failed to check allotment:', err);
-                statusEl.innerHTML = `
-                    <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <span class="text-red-400">Network error. Please try again.</span>
-                    </div>
-                `;
+                currentPANs = currentPANs.map(p => p.pan === pan ? { ...p, lastStatus: 'Error', shares: 'Network error' } : p);
+                renderPANs(currentPANs);
             }
         }
+
         async function checkAllPANs() {
             if (!allotmentAvailable || currentPANs.length === 0) return;
             const checkAllBtn = document.getElementById('check-all-btn');

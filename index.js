@@ -239,9 +239,18 @@ app.post("/api/checkallotedyet", async (req, res) => {
             return res.status(400).json({ success: false, error: "IPO name and registrar are required" });
         }
         if (registrar == "K-Fintech") {
-            const url = "https://ipostatus.kfintech.com/static/js/main.0ec4c140.js";
-            const js = await (await fetch(url)).text();
+            const htmlUrl = "https://ipostatus.kfintech.com/";
+            const html = await (await fetch(htmlUrl)).text();
+            const scriptMatch = html.match(/src="\.?(\/static\/js\/main\.[a-f0-9]+\.js)"/);
+            if (!scriptMatch) {
+                return res.status(500).json({ success: false, error: "Could not find Kfintech script URL" });
+            }
+            const jsUrl = "https://ipostatus.kfintech.com" + scriptMatch[1];
+            const js = await (await fetch(jsUrl)).text();
             const match = js.match(/const\s+rf\s*=\s*JSON\.parse\('([^']*)'\)/);
+            if (!match) {
+                return res.status(500).json({ success: false, error: "Could not parse Kfintech data" });
+            }
             const jsonString = match[1];
             const rf = JSON.parse(jsonString);
             const alloted = rf.find((item) => item.name.toLowerCase().includes(ipoName.toLowerCase().substring(0, ipoName.length - 5)));
