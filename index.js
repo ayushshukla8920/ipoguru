@@ -368,4 +368,11 @@ app.get("/ipo", (req, res) => {
 app.get("/download/android", (req, res) => {
     res.download(path.join(__dirname, "public", "IPOGuru.apk"));
 });
+app.get("/app/version", (req, res) => {
+    res.json({
+        application: "IPO Guru",
+        path: "/download/android",
+        version: "1.0.0"
+    });
+});
 app.listen(3000, () => console.log("API Server running at http://localhost:3000"));
