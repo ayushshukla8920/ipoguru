@@ -372,7 +372,7 @@ app.get("/app/version", (req, res) => {
     res.json({
         application: "IPO Guru",
         path: "/download/android",
-        version: "1.0.2"
+        version: "1.0.0"
     });
 });
 app.listen(3000, () => console.log("API Server running at http://localhost:3000"));
