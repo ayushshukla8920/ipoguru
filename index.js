@@ -335,6 +335,88 @@ app.post("/api/checkallotment", protectApi, async (req, res) => {
                 });
             }
         }
+        if (registrar == "Link Intime") {
+            const url = "https://in.mpms.mufg.com/Initial_Offer/IPO.aspx/SearchOnPan";
+            const body = {
+                "clientid": clientId,
+                "PAN": pan.toUpperCase(),
+                "IFSC": "",
+                "CHKVAL": "1",
+                "token": "8K1HMpYfQVZSh34FtBpueg=="
+            }
+            const response = await fetch(url, {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers: {
+                    "content-type": "application/json;charset:utf-8"
+                }
+            });
+            const data = await response.json();
+            if (data.d == "<NewDataSet />") {
+                return res.json({
+                    success: false,
+                    data: {
+                        status: "Not Applied",
+                        pan: pan.toUpperCase(),
+                        name: null,
+                        shares: "0 Alloted",
+                        registrar: registrar
+                    }
+                });
+            }
+            else {
+                const dataSets = data.d.match(/<NewDataSet>[\s\S]*?<\/NewDataSet>/g);
+                if (!dataSets || dataSets.length === 0) {
+                    return res.json({
+                        success: false,
+                        data: {
+                            status: "Not Applied",
+                            pan: pan.toUpperCase(),
+                            name: null,
+                            shares: "0 Alloted",
+                            registrar: registrar
+                        }
+                    });
+                }
+                const parsed = await xml2js.parseStringPromise(dataSets[0], {
+                    explicitArray: false,
+                    trim: true
+                });
+                const tableData = parsed.NewDataSet?.Table;
+                if (!tableData) {
+                    return res.json({
+                        success: false,
+                        data: {
+                            status: "Not Applied",
+                            pan: pan.toUpperCase(),
+                            name: null,
+                            shares: "0 Alloted",
+                            registrar: registrar
+                        }
+                    });
+                }
+                const name = tableData.NAME1 || null;
+                const sharesAllotted = parseInt(tableData.ALLOT) || 0;
+                const sharesApplied = parseInt(tableData.SHARES) || 0;
+                const refundAmount = parseInt(tableData.RFNDAMT) || 0;
+                if (name) {
+                    await User.findOneAndUpdate(
+                        { _id: req.user.id, "panCards.pan": pan.toUpperCase() },
+                        { $set: { "panCards.$.name": name } }
+                    );
+                }
+                return res.json({
+                    success: true,
+                    data: {
+                        status: sharesAllotted > 0 ? "Allotted" : "Not Allotted",
+                        pan: pan.toUpperCase(),
+                        name: name,
+                        shares: sharesAllotted + " Allotted",
+                        registrar: registrar
+                    }
+                });
+            }
+        }
         res.json({
             success: true,
             data: {
